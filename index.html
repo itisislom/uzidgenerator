@@ -4,16 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генератор ID-карты Узбекистана</title>
+    <!-- Добавлен тег для иконки сайта -->
     <link rel="icon" type="image/png" href="icon.png">
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- HTML2Canvas для захвата DOM в виде изображения -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- jsPDF для генерации PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        /* Общие стили для всего приложения */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Настраиваемые стили для ID-карты (размер ISO ID-1) */
         .id-card-container {
-            width: 3.375in; /* ~85.6mm */
-            height: 2.125in; /* ~53.98mm */
+            width: 3.375in; /* Ширина стандарта ISO ID-1 (примерно 85.6 мм) */
+            height: 2.125in; /* Высота стандарта ISO ID-1 (примерно 54 мм) */
             box-sizing: border-box;
             position: relative;
             overflow: hidden;
@@ -26,9 +36,11 @@
             background-color: #fff;
             color: #000;
         }
+
+        /* Стили для 3D-кнопок */
         .modern-button {
             background-color: transparent;
-            color: #059669;
+            color: #059669; /* emerald-600 */
             padding: 0.6rem 1.2rem;
             border-radius: 9999px;
             cursor: pointer;
@@ -40,84 +52,116 @@
             border: 2px solid #059669;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            box-shadow: 0 4px #047857;
+            box-shadow: 0 4px #047857; /* emerald-700 */
             position: relative;
             top: 0;
         }
-        .modern-button:hover { background-color: #059669; color: #fff; top: 2px; box-shadow: 0 2px #047857; }
-        .modern-button:active { top: 4px; box-shadow: 0 0 #047857; }
 
-        .uz-flag { width: 100%; height: 10px; position: absolute; top: 0; left: 0; display: flex; }
-        .uz-flag .blue { background-color: #0072CE; flex: 2; }
-        .uz-flag .white { background-color: #FFFFFF; flex: 3; }
-        .uz-flag .green { background-color: #11A63F; flex: 2; }
-        /* добавим тонкую красную разделительную линию (как деталь дизайна) */
-        .uz-flag .divider { width: 2px; background-color: #D62615; }
-
-        .custom-modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.35);
-            z-index: 999;
-            display: none;
-            align-items: center;
-            justify-content: center;
+        .modern-button:hover {
+            background-color: #059669;
+            color: #fff;
+            top: 2px;
+            box-shadow: 0 2px #047857;
         }
+        
+        .modern-button:active {
+            top: 4px;
+            box-shadow: 0 0 #047857;
+        }
+        
+        /* Стиль для флага Узбекистана на ID-карте */
+        .uz-flag {
+            width: 100%;
+            height: 10px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+        }
+        .uz-flag .blue { background-color: #0072CE; flex: 1; }
+        .uz-flag .white { background-color: #FFFFFF; flex: 1; }
+        .uz-flag .red { background-color: #D62615; width: 2px; }
+        .uz-flag .green { background-color: #11A63F; flex: 1; }
+        
+        /* Кастомный модал для сообщений */
         .custom-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             background-color: #fff;
-            padding: 18px 22px;
+            padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             z-index: 1000;
             text-align: center;
-            color: #111827;
-            transform: translateY(8px);
+            font-family: 'Inter', sans-serif;
+            color: #333;
+            display: none;
+            transition: all 0.3s ease-in-out;
             opacity: 0;
-            transition: all .22s ease;
-            min-width: 220px;
         }
-        .custom-modal.show { transform: translateY(0); opacity: 1; }
-
-        .photo-container { position: relative; max-width: 3.7rem; max-height: 4.7rem; flex-shrink: 0; }
-        .photo-container img { width: 100%; height: 100%; object-fit: contain; display: block; background: #f3f4f6; }
+        
+        .custom-modal.show {
+            display: block;
+            opacity: 1;
+        }
+        
+        /* Исправленный стиль для фото */
+        .photo-container {
+            position: relative;
+            max-width: 3.7rem;
+            max-height: 4.7rem;
+            flex-shrink-0;
+        }
+        .photo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Исправлено: используем contain, чтобы изображение не обрезалось */
+            display: block;
+        }
     </style>
 </head>
 <body class="font-sans bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
     <div class="flex flex-col lg:flex-row bg-white rounded-lg shadow-xl overflow-hidden w-full max-w-6xl">
+        <!-- Левая панель: область редактирования -->
         <div class="w-full lg:w-1/2 p-6 md:p-8 space-y-6 border-r border-gray-200 overflow-y-auto" style="max-height: 90vh;">
+            <!-- Селектор языка -->
             <div class="flex justify-end mb-4">
                 <select id="languageSelector" class="px-3 py-2 border rounded-md shadow-sm">
                     <option value="ru">Русский</option>
                     <option value="uz">O'zbekcha</option>
                 </select>
             </div>
-
+            
             <h2 id="editorTitle" class="text-3xl font-bold text-gray-800 mb-6 text-center">Редактор ID-карты</h2>
 
+            <!-- Опции загрузки фото -->
             <div class="space-y-4">
                 <label id="photoLabel" for="studentPhotoUpload" class="block text-sm font-medium text-gray-700">Загрузить фото паспорта</label>
                 <label for="studentPhotoUpload" class="modern-button">Выбрать файл</label>
                 <input type="file" id="studentPhotoUpload" accept="image/*" class="hidden">
             </div>
 
+            <!-- Текстовые поля -->
             <div class="space-y-4">
                 <label id="surnameLabel" for="surnameInput" class="block text-sm font-medium text-gray-700">Фамилия (Familiyasi):</label>
-                <input type="text" id="surnameInput" placeholder="Olimjonova" class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm">
+                <input type="text" id="surnameInput" placeholder="Olimjonova" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
             </div>
 
             <div class="space-y-4">
                 <label id="nameLabel" for="nameInput" class="block text-sm font-medium text-gray-700">Имя (Ismi):</label>
-                <input type="text" id="nameInput" placeholder="Nilufar" class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm">
+                <input type="text" id="nameInput" placeholder="Nilufar" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
             </div>
             
             <div class="space-y-4">
                 <label id="dobLabel" for="dobInput" class="block text-sm font-medium text-gray-700">Дата рождения (Tug'ilgan sana):</label>
-                <input type="date" id="dobInput" class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm">
+                <input type="date" id="dobInput" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
             </div>
 
             <div class="space-y-4">
                 <label id="sexLabel" for="sexInput" class="block text-sm font-medium text-gray-700">Пол (Jinsi):</label>
-                <select id="sexInput" class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm">
+                <select id="sexInput" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
                     <option value="AYOL">Женский (AYOL)</option>
                     <option value="ERKAK">Мужской (ERKAK)</option>
                 </select>
@@ -125,34 +169,40 @@
 
             <div class="space-y-4">
                 <label id="issueDateLabel" for="issueDateInput" class="block text-sm font-medium text-gray-700">Дата выдачи (Berilgan sanasi):</label>
-                <input type="date" id="issueDateInput" class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm">
+                <input type="date" id="issueDateInput" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
             </div>
 
             <div class="space-y-4">
                 <label id="expiryDateLabel" for="expiryDateInput" class="block text-sm font-medium text-gray-700">Срок действия (Amal qilish vaqti):</label>
-                <input type="date" id="expiryDateInput" class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm">
+                <input type="date" id="expiryDateInput" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
             </div>
             
             <div class="space-y-4">
                 <label id="cardNumberLabel" for="cardNumberInput" class="block text-sm font-medium text-gray-700">Номер карты (Karta raqami):</label>
-                <input type="text" id="cardNumberInput" placeholder="1234567" class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm">
+                <input type="text" id="cardNumberInput" placeholder="1234567" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
             </div>
 
+            <!-- Новое поле для редактирования текста ID UZB -->
             <div class="space-y-4">
                 <label id="idUzbLabel" for="idUzbInput" class="block text-sm font-medium text-gray-700">Текст ID UZB:</label>
-                <input type="text" id="idUzbInput" value="ID UZB" class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm">
+                <input type="text" id="idUzbInput" value="ID UZB" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
             </div>
         </div>
 
+        <!-- Правая панель: Живой предпросмотр карты -->
         <div class="w-full lg:w-1/2 p-6 md:p-8 flex flex-col items-center justify-center bg-gray-50 relative">
             <h2 id="previewTitle" class="text-3xl font-bold text-gray-800 mb-6 text-center">Предпросмотр ID-карты</h2>
 
-            <div id="idCardPreview" class="id-card-container bg-white rounded-lg shadow-lg relative" aria-label="Предварительный просмотр карты">
+            <!-- Область предпросмотра ID-карты -->
+            <div id="idCardPreview" class="id-card-container bg-white rounded-lg shadow-lg relative">
+                
+                <!-- Верхняя секция: Флаг и заголовок -->
+                <!-- Новый, стилизованный CSS флаг -->
                 <div class="uz-flag">
                     <div class="blue"></div>
-                    <div class="divider"></div>
+                    <div class="red"></div>
                     <div class="white"></div>
-                    <div class="divider"></div>
+                    <div class="red"></div>
                     <div class="green"></div>
                 </div>
 
@@ -167,11 +217,15 @@
                     </div>
                 </div>
 
+                <!-- Основная часть карты -->
                 <div class="flex flex-row w-full mt-8 flex-grow p-1">
+                    <!-- Фото паспорта -->
+                    <!-- Исправленный контейнер для фото -->
                     <div class="photo-container w-20 h-24 flex-shrink-0 bg-gray-200 rounded-md overflow-hidden relative mr-2">
-                        <img id="cardStudentPhoto" src="https://placehold.co/100x120/10B981/ffffff?text=Фото" alt="Фото паспорта" class="w-full h-full object-contain" crossorigin="anonymous">
+                        <img id="cardStudentPhoto" src="https://placehold.co/100x120/10B981/ffffff?text=Фото" alt="Фото паспорта" class="w-full h-full object-contain">
                     </div>
                     
+                    <!-- Информация о паспорте -->
                     <div class="flex flex-col text-[0.5rem] space-y-0.5 flex-grow font-bold pl-1">
                         <p id="cardSurnameLabel" class="text-xs text-gray-500 font-normal">Familiyasi / Surname</p>
                         <p id="cardSurname" class="text-sm font-bold -mt-1"></p>
@@ -198,6 +252,7 @@
                     </div>
                 </div>
 
+                <!-- Нижняя полоса с номером карты и голограммой -->
                 <div class="flex items-center justify-between w-full px-2 py-0.5 border-t border-gray-200 text-xs text-gray-500">
                     <div class="flex flex-col">
                         <p id="cardCardNumberLabel">Karta raqami / Card number</p>
@@ -207,22 +262,21 @@
                 </div>
             </div>
 
+            <!-- Кнопка загрузки -->
             <button id="downloadCardButton" class="modern-button mt-8">
                 Скачать карту
             </button>
         </div>
     </div>
     
-    <div id="modalOverlay" class="custom-modal-overlay" role="dialog" aria-modal="true">
-        <div id="modalBox" class="custom-modal"></div>
-    </div>
+    <div id="modalContainer"></div>
 
     <footer class="w-full text-center text-sm text-gray-500 mt-8 mb-4">
         &copy; Copyright Islom Sadriddinov сайта. Все права защищены.
     </footer>
 
     <script>
-        // Переводы
+        // Объект с переводами для двух языков
         const translations = {
             ru: {
                 editorTitle: "Редактор ID-карты",
@@ -286,7 +340,7 @@
             }
         };
 
-        // Map id -> translation key
+        // DOM элементы
         const elementsToTranslate = {
             'editorTitle': 'editorTitle',
             'previewTitle': 'previewTitle',
@@ -316,46 +370,50 @@
         const surnameInput = document.getElementById('surnameInput');
         const nameInput = document.getElementById('nameInput');
 
-        function formatDateForDisplay(dateValue) {
-            if (!dateValue) return '';
-            try {
-                const d = new Date(dateValue);
-                if (isNaN(d)) return '';
-                const dd = String(d.getDate()).padStart(2, '0');
-                const mm = String(d.getMonth() + 1).padStart(2, '0');
-                const yyyy = d.getFullYear();
-                return `${dd}.${mm}.${yyyy}`;
-            } catch (e) { return dateValue; }
-        }
-
-        function sanitizeFileName(name) {
-            return name.replace(/[^\w\-_. ]+/g, '').replace(/\s+/g, '_').slice(0, 120) || 'student';
-        }
-
+        /**
+         * Обновляет все текстовые элементы на странице на выбранном языке.
+         * @param {string} lang - Код языка ('ru' или 'uz').
+         */
         function updateLanguage(lang) {
             const translation = translations[lang];
             if (!translation) return;
+
+            // Обновление статических элементов
             for (const [id, key] of Object.entries(elementsToTranslate)) {
                 const element = document.getElementById(id);
                 if (element) {
-                    // для кнопки используем value/textContent в зависимости от типа
-                    element.textContent = translation[key] || '';
+                    element.textContent = translation[key];
                 }
             }
+
+            // Обновление опций в select-поле для пола
             const sexSelect = document.getElementById('sexInput');
             if (sexSelect) {
                 sexSelect.options[0].textContent = translation.sexFemale;
                 sexSelect.options[1].textContent = translation.sexMale;
             }
+
+            // Обновление кнопки "Выбрать файл"
             const fileLabel = document.querySelector('label[for="studentPhotoUpload"].modern-button');
-            if (fileLabel) fileLabel.textContent = translation.chooseFile;
+            if (fileLabel) {
+                fileLabel.textContent = translation.chooseFile;
+            }
+
+            // Обновление плейсхолдера фото
             if (cardStudentPhoto && cardStudentPhoto.src.includes('placehold.co')) {
                 cardStudentPhoto.src = `https://placehold.co/100x120/10B981/ffffff?text=${encodeURIComponent(translation.placeholderPhoto)}`;
             }
+
+            // Обновление отображения текущих значений
             updateAllCardText();
+
+            // Сохранение выбранного языка в localStorage
             localStorage.setItem('language', lang);
         }
 
+        /**
+         * Сохраняет все данные формы в локальное хранилище.
+         */
         function saveToLocalStorage() {
             const data = {
                 surname: surnameInput.value,
@@ -366,55 +424,53 @@
                 expiryDate: document.getElementById('expiryDateInput').value,
                 cardNumber: document.getElementById('cardNumberInput').value,
                 idUzb: document.getElementById('idUzbInput').value,
-                photo: cardStudentPhoto.src || ''
+                photo: cardStudentPhoto.src // Сохраняем dataURL изображения
             };
-            try { localStorage.setItem('idCardData', JSON.stringify(data)); } catch(e) { console.warn('LocalStorage save failed', e); }
+            localStorage.setItem('idCardData', JSON.stringify(data));
         }
 
+        /**
+         * Загружает данные из локального хранилища и заполняет форму.
+         */
         function loadFromLocalStorage() {
             const savedData = localStorage.getItem('idCardData');
             if (savedData) {
-                try {
-                    const data = JSON.parse(savedData);
-                    surnameInput.value = data.surname || '';
-                    nameInput.value = data.name || '';
-                    document.getElementById('dobInput').value = data.dob || '';
-                    document.getElementById('sexInput').value = data.sex || 'AYOL';
-                    document.getElementById('issueDateInput').value = data.issueDate || '';
-                    document.getElementById('expiryDateInput').value = data.expiryDate || '';
-                    document.getElementById('cardNumberInput').value = data.cardNumber || '';
-                    document.getElementById('idUzbInput').value = data.idUzb || 'ID UZB';
-                    if (data.photo && data.photo !== cardStudentPhoto.src) {
-                        cardStudentPhoto.src = data.photo;
-                    }
-                } catch (err) { console.warn('Invalid saved data', err); }
+                const data = JSON.parse(savedData);
+                surnameInput.value = data.surname;
+                nameInput.value = data.name;
+                document.getElementById('dobInput').value = data.dob;
+                document.getElementById('sexInput').value = data.sex;
+                document.getElementById('issueDateInput').value = data.issueDate;
+                document.getElementById('expiryDateInput').value = data.expiryDate;
+                document.getElementById('cardNumberInput').value = data.cardNumber;
+                document.getElementById('idUzbInput').value = data.idUzb;
+                
+                // Загрузка сохраненного изображения
+                if (data.photo && data.photo !== cardStudentPhoto.src) {
+                    cardStudentPhoto.src = data.photo;
+                }
             }
+            
+            // Загрузка языка
             const savedLang = localStorage.getItem('language') || 'ru';
             languageSelector.value = savedLang;
             updateLanguage(savedLang);
         }
 
+        /**
+         * Обновляет текстовые поля на превью карты.
+         */
         function updateCardText(inputId, cardElementId) {
             const inputElement = document.getElementById(inputId);
             const cardElement = document.getElementById(cardElementId);
-            if (!cardElement) return;
-            if (!inputElement) { cardElement.textContent = ''; return; }
-
-            if (inputElement.type === 'date') {
-                cardElement.textContent = formatDateForDisplay(inputElement.value);
-            } else if (inputElement.tagName === 'SELECT' && inputId === 'sexInput') {
-                // Отображать локализованный текст пола
-                const lang = localStorage.getItem('language') || 'ru';
-                const trans = translations[lang] || translations.ru;
-                const val = inputElement.value;
-                if (val === 'AYOL') cardElement.textContent = trans.sexFemale;
-                else if (val === 'ERKAK') cardElement.textContent = trans.sexMale;
-                else cardElement.textContent = val;
-            } else {
-                cardElement.textContent = inputElement.value || '';
+            if (inputElement && cardElement) {
+                cardElement.textContent = inputElement.value;
             }
         }
 
+        /**
+         * Обновляет все текстовые поля на превью карты.
+         */
         function updateAllCardText() {
             updateCardText('surnameInput', 'cardSurname');
             updateCardText('nameInput', 'cardName');
@@ -425,25 +481,37 @@
             updateCardText('cardNumberInput', 'cardCardNumber');
             updateCardText('idUzbInput', 'cardIdUzb');
         }
-
-        // модал
+        
+        /**
+         * Функция для отображения кастомного модального окна
+         * @param {string} message - Сообщение для отображения
+         * @param {string} type - Тип сообщения ('info', 'success', 'error')
+         */
         function showMessage(message, type = 'info') {
-            const overlay = document.getElementById('modalOverlay');
-            const box = document.getElementById('modalBox');
-            box.textContent = message;
-            overlay.style.display = 'flex';
-            setTimeout(() => box.classList.add('show'), 10);
+            const modalContainer = document.getElementById('modalContainer');
+            if (!modalContainer) return;
+
+            modalContainer.innerHTML = '';
+            const modal = document.createElement('div');
+            modal.className = `custom-modal ${type}`;
+            modal.textContent = message;
+            modalContainer.appendChild(modal);
+            
             setTimeout(() => {
-                box.classList.remove('show');
-                setTimeout(() => overlay.style.display = 'none', 220);
-            }, 2000);
+                modal.classList.add('show');
+            }, 10);
+
+            setTimeout(() => {
+                modal.classList.remove('show');
+                setTimeout(() => modal.remove(), 500);
+            }, 3000);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             loadFromLocalStorage();
-            updateAllCardText();
 
-            const inputs = document.querySelectorAll('input[type="text"], input[type="date"], select, textarea');
+            // Добавляем слушатели событий для всех полей ввода для обновления и сохранения
+            const inputs = document.querySelectorAll('input, select');
             inputs.forEach(input => {
                 input.addEventListener('input', () => {
                     updateAllCardText();
@@ -451,65 +519,50 @@
                 });
             });
 
-            languageSelector.addEventListener('change', (e) => updateLanguage(e.target.value));
+            // Слушатель для выбора языка
+            languageSelector.addEventListener('change', (e) => {
+                updateLanguage(e.target.value);
+            });
 
-            // file upload
+            // Слушатель для загрузки изображений и сохранения в localStorage
             document.getElementById('studentPhotoUpload').addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onload = function(evt) {
-                        cardStudentPhoto.src = evt.target.result;
-                        saveToLocalStorage();
+                    reader.onload = function(e) {
+                        cardStudentPhoto.src = e.target.result;
+                        saveToLocalStorage(); // Сохраняем dataURL
                     };
                     reader.readAsDataURL(file);
                 }
             });
-
-            // если пользователи кликают по кнопке выбора файла — это уже сработает через label[for]
         });
 
-        // Захват + скачивание (PNG + PDF) — исправлено чтобы не обрезало
+        // Функциональность загрузки
         document.getElementById('downloadCardButton').addEventListener('click', async () => {
             const card = document.getElementById('idCardPreview');
-            const scaleFactor = 3; // качество: 2..4 - можно варьировать
+            const scaleFactor = 4;
             const currentLang = localStorage.getItem('language') || 'ru';
             const translation = translations[currentLang];
 
             try {
                 showMessage(translation.creatingCard, "info");
 
-                // временно позволим видеть полностью (избавимся от overflow:hidden, если он мешает)
-                const prevOverflow = card.style.overflow;
-                card.style.overflow = 'visible';
-
-                // используем точную геометрию элемента
-                const rect = card.getBoundingClientRect();
-
-                // html2canvas capture - корректные параметры чтобы не обрезало
                 const canvas = await html2canvas(card, {
                     scale: scaleFactor,
                     useCORS: true,
-                    backgroundColor: null, // сохраняем белый фон карты (карта сама белая)
-                    width: Math.round(rect.width),
-                    height: Math.round(rect.height),
-                    x: Math.round(rect.left + window.scrollX),
-                    y: Math.round(rect.top + window.scrollY),
-                    // исправления для некоторых браузеров
-                    scrollX: 0,
-                    scrollY: 0,
-                    windowWidth: document.documentElement.clientWidth,
-                    windowHeight: document.documentElement.clientHeight,
+                    logging: false,
+                    width: card.offsetWidth,
+                    height: card.offsetHeight,
+                    scrollX: -window.scrollX,
+                    scrollY: -window.scrollY,
+                    windowWidth: document.documentElement.offsetWidth,
+                    windowHeight: document.documentElement.offsetHeight
                 });
 
-                // восстановим overflow
-                card.style.overflow = prevOverflow || '';
+                const studentName = document.getElementById('nameInput').value.replace(/ /g, '_') || 'student';
 
-                // Создаём безопасное имя
-                const rawName = (document.getElementById('nameInput').value || document.getElementById('surnameInput').value || 'student');
-                const studentName = sanitizeFileName(rawName);
-
-                // PNG
+                // --- Загрузка PNG ---
                 const pngUrl = canvas.toDataURL('image/png');
                 const pngLink = document.createElement('a');
                 pngLink.href = pngUrl;
@@ -518,35 +571,28 @@
                 pngLink.click();
                 document.body.removeChild(pngLink);
 
-                // PDF
-                const { jsPDF } = window.jspdf || window.jspdf || {};
-                // Стандартный размер ID-1: 85.60 x 53.98 mm
-                const pdfWidthMM = 85.60;
-                const pdfHeightMM = 53.98;
+                // --- Загрузка PDF ---
+                const { jsPDF } = window.jspdf;
+                const pdfWidth = 85.60;
+                const pdfHeight = 53.98;
 
-                // если jsPDF доступен
-                if (jsPDF) {
-                    const pdf = new jsPDF({
-                        orientation: 'landscape',
-                        unit: 'mm',
-                        format: [pdfWidthMM, pdfHeightMM]
-                    });
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: [pdfWidth, pdfHeight]
+                });
 
-                    // Для соотношения сторон используем пиксели canvas
-                    const imgData = canvas.toDataURL('image/png');
+                const imgData = canvas.toDataURL('image/png');
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save(`${studentName}_id_card.pdf`);
+                
+                setTimeout(() => {
+                    showMessage(translation.downloadSuccess, "success");
+                }, 500);
 
-                    // Вставляем изображение на всю страницу PDF в мм (он автоматически растянет)
-                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidthMM, pdfHeightMM);
-                    pdf.save(`${studentName}_id_card.pdf`);
-                } else {
-                    console.warn('jsPDF not found, skipping PDF generation.');
-                }
-
-                setTimeout(() => showMessage(translation.downloadSuccess, "success"), 500);
-                saveToLocalStorage();
             } catch (error) {
                 console.error("Ошибка при создании карты:", error);
-                showMessage((translations[localStorage.getItem('language')]||translations.ru).downloadError, "error");
+                showMessage(translation.downloadError, "error");
             }
         });
     </script>
